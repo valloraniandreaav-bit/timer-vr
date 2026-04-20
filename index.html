@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Timer VR / Reale</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    body{margin:0;background:#0f1724;color:#e6eef8;padding:20px}
+    .wrap{max-width:1100px;margin:0 auto}
+    h1{margin:0 0 14px;font-size:24px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{
+      background:#0b1220;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:16px;
+    }
+    label{display:block;font-size:12px;opacity:.85;margin:8px 0 6px}
+    input,select,button{
+      width:100%;
+      box-sizing:border-box;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      color:inherit;
+      outline:none;
+    }
+    button{cursor:pointer;font-weight:700}
+    .primary{background:rgba(77,158,255,.30)}
+    .primary:hover{background:rgba(77,158,255,.42)}
+    .btn2{background:rgba(255,255,255,.06)}
+    .btn2:hover{background:rgba(255,255,255,.11)}
+    .danger{background:rgba(255,80,80,.22)}
+    .danger:hover{background:rgba(255,80,80,.32)}
+    .success{background:rgba(60,180,120,.22)}
+    .success:hover{background:rgba(60,180,120,.32)}
+    .row{display:flex;gap:10px}
+    .row>*{flex:1}
+    .big{font-size:56px;font-weight:900;text-align:center;margin:18px 0 8px}
+    .phase{
+      font-size:24px;
+      font-weight:800;
+      text-align:center;
+      margin-top:10px;
+    }
+    .muted{opacity:.75;font-size:13px}
+    .statusbar{
+      display:flex;gap:8px;flex-wrap:wrap;margin-top:8px
+    }
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      font-size:12px;
+    }
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{
+      padding:8px 6px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      text-align:left;
+      font-size:13px;
+      vertical-align:top;
+    }
+    .log{
+      white-space:pre-wrap;
+      font-family:ui-monospace,Menlo,Consolas,monospace;
+      background:rgba(255,255,255,.02);
+      padding:10px;
+      border-radius:10px;
+      max-height:220px;
+      overflow:auto;
+      margin-top:10px;
+    }
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Timer automatico — VR / Reale</h1>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Modalità</label>
+          <select id="mode">
+            <option value="VR">VR</option>
+            <option value="Reale">Reale</option>
+          </select>
+        </div>
+        <div>
+          <label>Sessione</label>
+          <select id="session">
+            <option value="Sessione 1">Sessione 1</option>
+            <option value="Sessione 2">Sessione 2</option>
+            <option value="Sessione 3">Sessione 3</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Nome partecipante</label>
+      <input id="participant" placeholder="es. Mario Rossi / P01">
+
+      <label>Durata transizioni (sec)</label>
+      <input id="transitionSec" type="number" min="1" value="30">
+
+      <div class="row">
+        <div>
+          <label>Durata Task 1 (sec)</label>
+          <input id="task1Sec" type="number" min="1" value="60">
+        </div>
+        <div>
+          <label>Durata Task 2 (sec)</label>
+          <input id="task2Sec" type="number" min="1" value="30">
+        </div>
+        <div>
+          <label>Durata Task 3 (sec)</label>
+          <input id="task3Sec" type="number" min="1" value="30">
+        </div>
+      </div>
+
+      <div class="phase" id="phaseName">Pronto</div>
+      <div class="big" id="timer">00:00</div>
+
+      <div class="statusbar">
+        <span class="pill">Blocco: <b id="blockIndex">—</b></span>
+        <span class="pill">Stato: <b id="state">Pronto</b></span>
+        <span class="pill">Auto: <b id="autoStatus">ON</b></span>
+      </div>
+
+      <div id="responseBox" style="margin-top:14px">
+        <label>Risposte task</label>
+        <div class="row">
+          <div>
+            <label>Task 1</label>
+            <div class="row">
+              <select id="responseInputTask1">
+                <option value="">Seleziona risposta</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+              <button class="success" id="saveResponseTask1">Salva</button>
+            </div>
+          </div>
+          <div>
+            <label>Task 2</label>
+            <div class="row">
+              <select id="responseInputTask2">
+                <option value="">Seleziona risposta</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+              </select>
+              <button class="success" id="saveResponseTask2">Salva</button>
+            </div>
+          </div>
+          <div>
+            <label>Task 3</label>
+            <div class="row">
+              <select id="responseInputTask3">
+                <option value="">Seleziona risposta</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+              </select>
+              <button class="success" id="saveResponseTask3">Salva</button>
+            </div>
+          </div>
+        </div>
+        <div class="muted" id="responseHint" style="margin-top:6px">Puoi inserire o modificare le risposte delle task in qualsiasi momento.</div>
+      </div>
+
+      <div id="questionnaireBox" style="margin-top:14px">
+        <label>Questionario illuminazione (scala Likert 1–7)</label>
+        <div class="row">
+          <div>
+            <label>Task 1</label>
+            <div class="row">
+              <select id="lightingInputTask1">
+                <option value="">Seleziona punteggio</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+              </select>
+              <button class="success" id="saveLightingTask1">Salva</button>
+            </div>
+          </div>
+          <div>
+            <label>Task 2</label>
+            <div class="row">
+              <select id="lightingInputTask2">
+                <option value="">Seleziona punteggio</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+              </select>
+              <button class="success" id="saveLightingTask2">Salva</button>
+            </div>
+          </div>
+          <div>
+            <label>Task 3</label>
+            <div class="row">
+              <select id="lightingInputTask3">
+                <option value="">Seleziona punteggio</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+              </select>
+              <button class="success" id="saveLightingTask3">Salva</button>
+            </div>
+          </div>
+        </div>
+        <div class="muted" id="questionnaireHint" style="margin-top:6px"></div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="startSequence">Avvia sequenza</button>
+        <button class="btn2" id="pauseResume">Pausa</button>
+        <button class="danger" id="resetAll">Reset</button>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="btn2" id="manualStart">START manuale blocco</button>
+        <button class="btn2" id="manualEnd">END manuale blocco</button>
+        <button class="btn2" id="toggleAuto">Auto ON/OFF</button>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        La sequenza automatica registra start e end da sola.
+        Con i pulsanti manuali puoi forzare l'inizio o la fine del blocco corrente.
+      </div>
+
+      <div class="log" id="logBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button class="btn2" id="exportCsv">Scarica CSV</button>
+        <button class="btn2" id="clearRecords">Svuota records</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Modo</th>
+            <th>Partecipante</th>
+            <th>Sessione</th>
+            <th>Blocco</th>
+            <th>Tipo</th>
+            <th>Risposta</th>
+            <th>Luce</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Durata</th>
+            <th>Origine</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="12" class="muted">Nessun record</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  let sequence = [];
+  let currentIndex = -1;
+  let interval = null;
+  let phaseStartMs = null;
+  let elapsedBeforePause = 0;
+  let running = false;
+  let paused = false;
+  let autoMode = true;
+  let currentRecord = null;
+  let records = [];
+
+  let audioEnabled = false;
+  let selectedVoice = null;
+
+  function getSettings() {
+    return {
+      mode: $("mode").value,
+      participant: $("participant").value.trim(),
+      session: $("session").value,
+      transitionSec: Math.max(1, parseInt($("transitionSec").value || "30", 10)),
+      task1Sec: Math.max(1, parseInt($("task1Sec").value || "60", 10)),
+      task2Sec: Math.max(1, parseInt($("task2Sec").value || "60", 10)),
+      task3Sec: Math.max(1, parseInt($("task3Sec").value || "60", 10))
+    };
+  }
+
+  function numberToItalianWords(n) {
+    const small = {
+      0:"zero",1:"uno",2:"due",3:"tre",4:"quattro",5:"cinque",6:"sei",7:"sette",8:"otto",9:"nove",
+      10:"dieci",11:"undici",12:"dodici",13:"tredici",14:"quattordici",15:"quindici",16:"sedici",
+      17:"diciassette",18:"diciotto",19:"diciannove",20:"venti",21:"ventuno",22:"ventidue",
+      23:"ventitré",24:"ventiquattro",25:"venticinque",26:"ventisei",27:"ventisette",28:"ventotto",
+      29:"ventinove",30:"trenta",31:"trentuno",32:"trentadue",33:"trentatré",34:"trentaquattro",
+      35:"trentacinque",36:"trentasei",37:"trentasette",38:"trentotto",39:"trentanove",40:"quaranta",
+      41:"quarantuno",42:"quarantadue",43:"quarantatré",44:"quarantaquattro",45:"quarantacinque",
+      46:"quarantasei",47:"quarantasette",48:"quarantotto",49:"quarantanove",50:"cinquanta",
+      51:"cinquantuno",52:"cinquantadue",53:"cinquantatré",54:"cinquantaquattro",55:"cinquantacinque",
+      56:"cinquantasei",57:"cinquantasette",58:"cinquantotto",59:"cinquantanove",60:"sessanta"
+    };
+    return small[n] || String(n);
+  }
+
+  function getVoiceTexts() {
+    const { transitionSec } = getSettings();
+    const secWords = numberToItalianWords(transitionSec);
+
+    return {
+      "Transizione 1":
+        `Hai ${secWords} secondi per ambientarti. Dopo, potrai iniziare a leggere il testo e rispondere alla domanda dicendola ad alta voce.`,
+      "Transizione 2":
+        "Puoi spostarti al secondo task. Dovrai scegliere quale quadratino è il più scuro. Per rispondere, conta i quadratini partendo da sinistra e pronuncia ad alta voce il numero corretto.",
+      "Transizione 3":
+        "Puoi spostarti verso il tavolo sulla sinistra, oltre il muro. Dovrai scegliere quale simbolo è diverso dagli altri. Per rispondere, conta i simboli partendo da sinistra e pronuncia ad alta voce il numero del simbolo che ritieni diverso."
+    };
+  }
+
+  function pickBestItalianVoice() {
+    const voices = window.speechSynthesis.getVoices() || [];
+    if (!voices.length) return null;
+
+    return (
+      voices.find(v => /it-IT/i.test(v.lang) && /elsa|federica|luca|google italiano|microsoft/i.test(v.name)) ||
+      voices.find(v => /it-IT/i.test(v.lang)) ||
+      voices.find(v => /^it/i.test(v.lang)) ||
+      null
+    );
+  }
+
+  function enableAudio() {
+    audioEnabled = true;
+    selectedVoice = pickBestItalianVoice();
+
+    try {
+      const unlock = new SpeechSynthesisUtterance("");
+      unlock.lang = "it-IT";
+      if (selectedVoice) unlock.voice = selectedVoice;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(unlock);
+    } catch (e) {
+      console.warn("Impossibile inizializzare la sintesi vocale:", e);
+    }
+  }
+
+  function speak(text) {
+    if (!audioEnabled || !text) return;
+
+    try {
+      window.speechSynthesis.cancel();
+
+      const textWithPauses = text
+        .replace(/\./g, "... ")
+        .replace(/,/g, ", ")
+        .replace(/:/g, ": ... ")
+        .replace(/;/g, "; ... ");
+
+      const utterance = new SpeechSynthesisUtterance(textWithPauses);
+
+      if (!selectedVoice) {
+        selectedVoice = pickBestItalianVoice();
+      }
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      utterance.lang = "it-IT";
+      utterance.rate = 0.78;
+      utterance.pitch = 0.95;
+      utterance.volume = 1;
+
+      window.speechSynthesis.speak(utterance);
+      log(`VOCE: ${text}`);
+    } catch (e) {
+      console.warn("Errore sintesi vocale:", e);
+    }
+  }
+
+  function speakForBlock(blockName) {
+    const voiceTexts = getVoiceTexts();
+    const text = voiceTexts[blockName];
+    if (text) speak(text);
+  }
+
+  function stopSpeech() {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {
+      console.warn("Errore stop audio:", e);
+    }
+  }
+
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      selectedVoice = pickBestItalianVoice();
+    };
+  }
+
+  function buildSequence() {
+    const s = getSettings();
+    sequence = [
+      { name: "Transizione 1", type: "Transizione", dur: s.transitionSec },
+      { name: "Task 1", type: "Task", dur: s.task1Sec },
+      { name: "Questionario", type: "Questionario", dur: 20, linkedTaskName: "Task 1" },
+      { name: "Transizione 2", type: "Transizione", dur: s.transitionSec },
+      { name: "Task 2", type: "Task", dur: s.task2Sec },
+      { name: "Questionario", type: "Questionario", dur: 20, linkedTaskName: "Task 2" },
+      { name: "Transizione 3", type: "Transizione", dur: s.transitionSec },
+      { name: "Task 3", type: "Task", dur: s.task3Sec },
+      { name: "Questionario", type: "Questionario", dur: 20, linkedTaskName: "Task 3" }
+    ];
+  }
+
+  function fmtMMSS(totalSec) {
+    totalSec = Math.max(0, Math.ceil(totalSec));
+    const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+    const s = String(totalSec % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString();
+    $("logBox").textContent = `[${t}] ${msg}\n` + $("logBox").textContent;
+  }
+
+  function setState(txt) {
+    $("state").textContent = txt;
+  }
+
+  function esc(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function renderRows() {
+    const tbody = $("rows");
+    tbody.innerHTML = "";
+
+    if (!records.length) {
+      tbody.innerHTML = `<tr><td colspan="12" class="muted">Nessun record</td></tr>`;
+      return;
+    }
+
+    records.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${esc(r.mode)}</td>
+        <td>${esc(r.participant)}</td>
+        <td>${esc(r.session)}</td>
+        <td>${esc(r.blockName)}</td>
+        <td>${esc(r.blockType)}</td>
+        <td>${esc(r.response || "")}</td>
+        <td>${esc(r.lightingLikert || "")}</td>
+        <td>${esc(r.startISO)}</td>
+        <td>${esc(r.endISO || "")}</td>
+        <td>${r.durationSec != null ? r.durationSec.toFixed(2) : ""}</td>
+        <td>${esc(r.origin)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function updateHeader() {
+    if (currentIndex >= 0 && currentIndex < sequence.length) {
+      $("phaseName").textContent = sequence[currentIndex].name;
+      $("blockIndex").textContent = `${currentIndex + 1}/${sequence.length}`;
+    } else {
+      $("phaseName").textContent = "Pronto";
+      $("blockIndex").textContent = "—";
+    }
+    $("autoStatus").textContent = autoMode ? "ON" : "OFF";
+    updateResponseUI();
+  }
+
+  function createRecord(origin) {
+    const settings = getSettings();
+    const block = sequence[currentIndex];
+
+    currentRecord = {
+      mode: settings.mode,
+      participant: settings.participant,
+      session: settings.session,
+      blockName: block.name,
+      blockType: block.type,
+      plannedSec: block.dur,
+      response: "",
+      lightingLikert: "",
+      linkedTaskName: block.linkedTaskName || "",
+      startISO: new Date().toISOString(),
+      endISO: null,
+      durationSec: null,
+      origin: origin
+    };
+
+    records.push(currentRecord);
+    renderRows();
+  }
+
+  function closeRecord(originSuffix = "") {
+    if (!currentRecord || currentRecord.endISO) return;
+
+    currentRecord.endISO = new Date().toISOString();
+    const start = new Date(currentRecord.startISO).getTime();
+    const end = new Date(currentRecord.endISO).getTime();
+    currentRecord.durationSec = (end - start) / 1000;
+
+    if (originSuffix) {
+      currentRecord.origin += ` + ${originSuffix}`;
+    }
+
+    renderRows();
+  }
+
+  function getResponseOptionsForBlock(block) {
+    if (!block || block.type !== "Task") return [];
+
+    if (block.name === "Task 1") {
+      return ["A", "B", "C", "D"];
+    }
+    if (block.name === "Task 2" || block.name === "Task 3") {
+      return ["1","2","3","4","5","6","7","8","9","10"];
+    }
+    return [];
+  }
+
+  function getLatestTaskRecord(taskName) {
+    const matches = records.filter(r => r.blockType === "Task" && r.blockName === taskName);
+    return matches.length ? matches[matches.length - 1] : null;
+  }
+
+  function updateResponseUI() {
+    const block = sequence[currentIndex];
+    const taskNames = ["Task 1", "Task 2", "Task 3"];
+
+    taskNames.forEach(taskName => {
+      const taskRecord = getLatestTaskRecord(taskName);
+      const responseEl = $("responseInput" + taskName.replace(" ", ""));
+      const lightingEl = $("lightingInput" + taskName.replace(" ", ""));
+      if (responseEl) responseEl.value = taskRecord?.response || "";
+      if (lightingEl) lightingEl.value = taskRecord?.lightingLikert || "";
+    });
+
+    if (block && block.type === "Questionario") {
+      $("questionnaireHint").textContent = `Il questionario attivo ora è collegato a ${block.linkedTaskName}. Puoi comunque modificare i punteggi di Task 1, Task 2 e Task 3 in qualsiasi momento.`;
+    } else {
+      $("questionnaireHint").textContent = "Puoi inserire o modificare i punteggi Likert di Task 1, Task 2 e Task 3 in qualsiasi momento.";
+    }
+  }
+
+  function saveResponseForTask(taskName) {
+    const targetRecord = getLatestTaskRecord(taskName);
+    if (!targetRecord) {
+      alert("Per questa task non esiste ancora un record da aggiornare.");
+      return;
+    }
+
+    const inputId = "responseInput" + taskName.replace(" ", "");
+    const value = $(inputId).value;
+    if (!value) {
+      alert("Seleziona una risposta.");
+      return;
+    }
+
+    targetRecord.response = value;
+    renderRows();
+    updateResponseUI();
+    log(`Risposta salvata per ${taskName}: ${value}`);
+  }
+
+  function saveLightingForTask(taskName) {
+    const inputId = "lightingInput" + taskName.replace(" ", "");
+    const value = $(inputId).value;
+    if (!value) {
+      alert("Seleziona un punteggio Likert da 1 a 7.");
+      return;
+    }
+
+    const linkedTaskRecord = getLatestTaskRecord(taskName);
+    if (!linkedTaskRecord) {
+      alert("Non è stato trovato il record della task selezionata.");
+      return;
+    }
+
+    linkedTaskRecord.lightingLikert = value;
+
+    const block = sequence[currentIndex];
+    if (currentRecord && block && block.type === "Questionario" && block.linkedTaskName === taskName) {
+      currentRecord.response = value;
+      currentRecord.lightingLikert = value;
+    }
+
+    renderRows();
+    updateResponseUI();
+    log(`Questionario illuminazione salvato per ${taskName}: ${value}`);
+  }
+
+  function startCurrentBlock(origin = "automatico") {
+    if (currentIndex < 0 || currentIndex >= sequence.length) return;
+
+    const block = sequence[currentIndex];
+
+    phaseStartMs = performance.now();
+    elapsedBeforePause = 0;
+    running = true;
+    paused = false;
+
+    createRecord(origin);
+    setState("In corso");
+    updateHeader();
+    $("timer").textContent = fmtMMSS(block.dur);
+    log(`START ${block.name} (${block.dur}s) [${origin}]`);
+
+    if (block.type === "Transizione") {
+      speakForBlock(block.name);
+    } else if (block.type === "Task") {
+      speak("Puoi iniziare la task.");
+    } else if (block.type === "Questionario") {
+      speak("È stata adeguata l'illuminazione per eseguire il compito?");
+    }
+
+    if (interval) clearInterval(interval);
+    interval = setInterval(tick, 100);
+  }
+
+  function tick() {
+    if (!running || paused) return;
+
+    const block = sequence[currentIndex];
+    if (!block) return;
+
+    const elapsedSec = (performance.now() - phaseStartMs + elapsedBeforePause) / 1000;
+    const remainingSec = block.dur - elapsedSec;
+
+    $("timer").textContent = fmtMMSS(remainingSec);
+
+    if (remainingSec <= 0) {
+      endCurrentBlock("automatico");
+    }
+  }
+
+  function goToNextBlock() {
+    currentIndex++;
+
+    if (currentIndex >= sequence.length) {
+      finishSequence();
+      return;
+    }
+
+    updateHeader();
+
+    if (autoMode) {
+      startCurrentBlock("automatico");
+    } else {
+      const block = sequence[currentIndex];
+      $("timer").textContent = fmtMMSS(block.dur);
+      setState("In attesa");
+      log(`Pronto per ${block.name}`);
+    }
+  }
+
+  function finishSequence() {
+    running = false;
+    paused = false;
+    stopSpeech();
+
+    if (interval) clearInterval(interval);
+    interval = null;
+
+    currentIndex = sequence.length;
+    $("timer").textContent = "00:00";
+    $("phaseName").textContent = "Sequenza completata";
+    setState("Completato");
+    $("blockIndex").textContent = `${sequence.length}/${sequence.length}`;
+    updateResponseUI();
+    log("Sequenza completata");
+  }
+
+  function endCurrentBlock(origin = "manuale") {
+    if (currentIndex < 0 || currentIndex >= sequence.length) return;
+    if (!running && !paused && origin === "manuale") return;
+
+    const block = sequence[currentIndex];
+
+    closeRecord(origin);
+
+    if (interval) clearInterval(interval);
+    interval = null;
+
+    running = false;
+    paused = false;
+    setState(`Finito (${origin})`);
+    $("timer").textContent = "00:00";
+    log(`END ${block.name} [${origin}]`);
+    currentRecord = null;
+
+    if (autoMode) {
+      goToNextBlock();
+    } else {
+      updateResponseUI();
+    }
+  }
+
+  function startSequence() {
+    if (!getSettings().participant) {
+      alert("Inserisci il nome del partecipante.");
+      return;
+    }
+
+    enableAudio();
+
+    if (currentIndex === -1 || currentIndex >= sequence.length) {
+      buildSequence();
+      currentIndex = 0;
+      updateHeader();
+      startCurrentBlock("automatico");
+    }
+  }
+
+  function pauseResume() {
+    if (currentIndex < 0 || currentIndex >= sequence.length) return;
+
+    if (running && !paused) {
+      paused = true;
+      elapsedBeforePause += (performance.now() - phaseStartMs);
+
+      if (interval) clearInterval(interval);
+      interval = null;
+
+      stopSpeech();
+      setState("In pausa");
+      log(`Pausa su ${sequence[currentIndex].name}`);
+      $("pauseResume").textContent = "Riprendi";
+      return;
+    }
+
+    if (running && paused) return;
+
+    if (paused) {
+      phaseStartMs = performance.now();
+      paused = false;
+      setState("In corso");
+      log(`Ripresa su ${sequence[currentIndex].name}`);
+      $("pauseResume").textContent = "Pausa";
+
+      if (interval) clearInterval(interval);
+      interval = setInterval(tick, 100);
+    }
+  }
+
+  function resetAll() {
+    stopSpeech();
+
+    if (interval) clearInterval(interval);
+    interval = null;
+
+    currentIndex = -1;
+    phaseStartMs = null;
+    elapsedBeforePause = 0;
+    running = false;
+    paused = false;
+    currentRecord = null;
+
+    $("timer").textContent = "00:00";
+    $("phaseName").textContent = "Pronto";
+    $("blockIndex").textContent = "—";
+    setState("Pronto");
+    $("pauseResume").textContent = "Pausa";
+    updateResponseUI();
+    log("Reset completo");
+  }
+
+  function manualStart() {
+    if (!getSettings().participant) {
+      alert("Inserisci il nome del partecipante.");
+      return;
+    }
+
+    enableAudio();
+
+    if (currentIndex === -1) {
+      buildSequence();
+      currentIndex = 0;
+      updateHeader();
+    }
+
+    if (currentIndex >= sequence.length) return;
+    if (running) return;
+
+    startCurrentBlock("manuale");
+    $("pauseResume").textContent = "Pausa";
+  }
+
+  function manualEnd() {
+    if (currentIndex < 0 || currentIndex >= sequence.length) return;
+    endCurrentBlock("manuale");
+    $("pauseResume").textContent = "Pausa";
+  }
+
+  function toggleAuto() {
+    autoMode = !autoMode;
+    updateHeader();
+    log(`Auto mode ${autoMode ? "ON" : "OFF"}`);
+  }
+
+  function exportCSV() {
+    if (!records.length) {
+      alert("Nessun record da esportare.");
+      return;
+    }
+
+    const header = [
+      "i","mode","participant","session","block_name","block_type",
+      "response","lighting_likert","linked_task_name","planned_sec","start_iso","end_iso","duration_sec","origin"
+    ];
+
+    const rows = records.map((r, i) => [
+      i + 1,
+      csvSafe(r.mode),
+      csvSafe(r.participant),
+      csvSafe(r.session),
+      csvSafe(r.blockName),
+      csvSafe(r.blockType),
+      csvSafe(r.response || ""),
+      csvSafe(r.lightingLikert || ""),
+      csvSafe(r.linkedTaskName || ""),
+      r.plannedSec,
+      csvSafe(r.startISO),
+      csvSafe(r.endISO || ""),
+      r.durationSec != null ? r.durationSec.toFixed(3) : "",
+      csvSafe(r.origin)
+    ]);
+
+    const csv = [header.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "records_vr_reale.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function csvSafe(v) {
+    return `"${String(v ?? "").replace(/"/g, '""')}"`;
+  }
+
+  $("startSequence").addEventListener("click", () => {
+    $("pauseResume").textContent = "Pausa";
+    startSequence();
+  });
+
+  $("pauseResume").addEventListener("click", pauseResume);
+  $("resetAll").addEventListener("click", resetAll);
+
+  $("manualStart").addEventListener("click", () => {
+    $("pauseResume").textContent = "Pausa";
+    manualStart();
+  });
+
+  $("manualEnd").addEventListener("click", () => {
+    $("pauseResume").textContent = "Pausa";
+    manualEnd();
+  });
+
+  $("toggleAuto").addEventListener("click", toggleAuto);
+  $("exportCsv").addEventListener("click", exportCSV);
+
+  $("saveResponseTask1").addEventListener("click", () => saveResponseForTask("Task 1"));
+  $("saveResponseTask2").addEventListener("click", () => saveResponseForTask("Task 2"));
+  $("saveResponseTask3").addEventListener("click", () => saveResponseForTask("Task 3"));
+
+  $("saveLightingTask1").addEventListener("click", () => saveLightingForTask("Task 1"));
+  $("saveLightingTask2").addEventListener("click", () => saveLightingForTask("Task 2"));
+  $("saveLightingTask3").addEventListener("click", () => saveLightingForTask("Task 3"));
+  
+  
+
+  
+  
+  
+
+  $("clearRecords").addEventListener("click", () => {
+    records = [];
+    renderRows();
+    log("Records svuotati");
+  });
+
+  updateHeader();
+  renderRows();
+  $("timer").textContent = "00:00";
+})();
+</script>
+</body>
+</html>
